@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FilterProvider } from './context/FilterContext';
 import { useQuickSightBridge } from './hooks/useQuickSightBridge';
 import { useFilterGroups } from './hooks/useFilterGroups';
@@ -84,7 +84,60 @@ function AppInner() {
   const handleParameterChange = (changedParameters, eventName) => {
     handleParametersChanged(changedParameters, eventName);
   };
+  //blue ribbon bridge----Start
+  useEffect(() => {
+    function filterGroupsToParamsList(groups) {
+      return (groups || [])
+        .filter((g) => g.Status !== 'DISABLED')
+        .map((g) => {
+          const cf = g.Filters?.[0]?.CategoryFilter;
+          const colName = cf?.Column?.ColumnName;
+          const values = cf?.Configuration?.FilterListConfiguration?.CategoryValues || [];
+          return colName ? { Name: colName, Value: values } : null;
+        })
+        .filter(Boolean);
+    }
 
+    function handleBlueRibbonRequest(event) {
+      const msg = event.data;
+      if (!msg || msg.type !== 'BLUE_RIBBON_REQUEST_PARAMS') return;
+      (async () => {
+        let reply;
+        try {
+          const dashboard = embedRef.current;
+          if (!dashboard?.isReady()) {
+            reply = { type: 'BLUE_RIBBON_PARAMS_RESULT', reqId: msg.reqId, params: [] };
+          } else {
+            const [params, sheetId] = await Promise.all([
+              dashboard.getParameters(),
+              dashboard.getSelectedSheetId(),
+            ]);
+            let filterGroupParams = [];
+            if (sheetId) {
+              try {
+                const groups = await dashboard.getFilterGroupsForSheet(sheetId);
+                filterGroupParams = filterGroupsToParamsList(groups);
+              } catch (e) {
+                console.warn('[blue-ribbon-bridge] getFilterGroupsForSheet failed:', e.message || e);
+              }
+            }
+            reply = {
+              type: 'BLUE_RIBBON_PARAMS_RESULT',
+              reqId: msg.reqId,
+              params: [...(params || []), ...filterGroupParams],
+            };
+          }
+        } catch (e) {
+          reply = { type: 'BLUE_RIBBON_PARAMS_RESULT', reqId: msg.reqId, error: e.message || String(e) };
+        }
+        event.source?.postMessage(reply, event.origin);
+      })();
+    }
+    window.addEventListener('message', handleBlueRibbonRequest);
+    return () => window.removeEventListener('message', handleBlueRibbonRequest);
+  }, []);
+
+  //blue ribbon bridge----End
   const handleExportPdf = async () => {
     if (!embedRef.current?.isReady()) {
       console.warn('[export] dashboard not ready, dropping export request');
@@ -120,7 +173,7 @@ function AppInner() {
             disabled={!dashboardReady}
             title={dashboardReady ? 'Toggle Filter Builder' : 'Waiting for dashboard to load…'}
           >
-            🔍 Search
+            Search
           </button>
           <button className="btn-reset" onClick={handleExportPdf} title="Export dashboard to PDF">
             Export to PDF
@@ -130,7 +183,7 @@ function AppInner() {
             onClick={() => setBookmarksOpen(true)}
             title="View, open, save, rename, or delete saved bookmarks"
           >
-            📑 My Bookmarks
+            Bookmarks
           </button>
           <button className="btn-reset" onClick={handleResetAll}>
             Reset all filters

@@ -54,6 +54,7 @@ export function useQuickSightBridge(embedRef) {
           markSent(name);
           return { Name: name, Values: values };
         });
+        console.log('[qs-bridge] sendToQuickSight -> setParameters:', { paramNameOrColumn, params });
         dashboard.setParameters(params);
       } catch (e) {
         console.error('[qs-bridge] setParameters failed:', e);
