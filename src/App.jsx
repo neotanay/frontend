@@ -63,9 +63,9 @@ function AppInner() {
     sendToQuickSight(paramForColumn(column), values);
   };
 
-  const handleResetAll = () => {
-    resetAll();
-    clearAllKnownFilterGroups();
+  const handleResetAll = async () => {
+    await resetAll();
+    await clearAllKnownFilterGroups();
   };
 
   const handleClearRow = (clearedCol) => {

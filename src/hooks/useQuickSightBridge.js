@@ -166,24 +166,17 @@ export function useQuickSightBridge(embedRef) {
     applyDefaultsToAppliedFilters(cachedDefaults);
 
     try {
-      dashboard.reset?.();
+      await dashboard.reset?.();
     } catch (e) {
       console.error('[qs-bridge] dashboard.reset() failed:', e);
     }
 
-    if (cachedDefaults.length) {
-      try {
-        cachedDefaults.forEach((p) => {
-          const name = p?.Name ?? p?.name;
-          if (name) markSent(name);
-        });
-        dashboard.setParameters(cachedDefaults);
-      } catch (e) {
-        console.error('[qs-bridge] re-applying cached defaults failed:', e);
-      }
-      return;
-    }
-
+    // dashboard.reset() already restores parameters to their published
+    // defaults on its own -- forcing the same values back in with a
+    // follow-up setParameters() call right after reset() collided with the
+    // SDK's own re-render from reset() and left visuals stuck in an error
+    // state. Just poll getParameters() below to confirm/sync the UI's
+    // applied-filters display with whatever reset() actually produced.
     const delaysMs = [0, 400, 900, 1600];
     for (const delay of delaysMs) {
       if (delay) await new Promise((resolve) => setTimeout(resolve, delay));
@@ -198,7 +191,7 @@ export function useQuickSightBridge(embedRef) {
         console.error('[qs-bridge] getParameters after reset failed:', e);
       }
     }
-  }, [embedRef, applyDefaultsToAppliedFilters, markSent]);
+  }, [embedRef, applyDefaultsToAppliedFilters]);
 
   const resetAndApply = useCallback(
     async (remaining) => {

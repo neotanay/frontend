@@ -21,7 +21,9 @@ function ValuesList({ values, checkedValues, onToggleValue, loading }) {
     return <div className="fb-val-empty">No values found</div>;
   }
 
-  const sorted = sortValues(values);
+  const checked = values.filter((v) => checkedValues.some((cv) => valuesMatch(cv, v)));
+  const unchecked = values.filter((v) => !checkedValues.some((cv) => valuesMatch(cv, v)));
+  const sorted = [...sortValues(checked), ...sortValues(unchecked)];
 
   return (
     <div className="fb-val-list">

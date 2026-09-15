@@ -356,7 +356,7 @@ export function useFilterGroups(embedRef, dashboardReady) {
         });
       }
       if (nativeCols.length) {
-        const groups = nativeCols.flatMap((c) => buildCategoryFilterGroupsForColumn(c, [], 'DISABLED'));
+        const groups = nativeCols.flatMap((c) => buildCategoryFilterGroupsForColumn(c, known[c] || [], 'DISABLED'));
         await dashboard.updateFilterGroups(groups);
         nativeCols.forEach((c) => {
           known[c] = [];
