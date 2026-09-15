@@ -8,7 +8,7 @@
 /* Header */
 .header {
   flex-shrink: 0;
-  background: linear-gradient(135deg, var(--header-navy) 0%, var(--header-navy-deep) 100%);
+  background:  var(--bg);
   color: #fff;
   padding: 12px 24px;
   display: flex;
@@ -39,6 +39,9 @@
 }
 
 .btn-reset {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   background: rgba(255, 255, 255, 0.12);
   color: #fff;
   border: 1px solid rgba(255, 255, 255, 0.28);
@@ -50,10 +53,8 @@
   backdrop-filter: blur(2px);
 }
 
-.btn-reset:hover {
-  background: rgba(255, 255, 255, 0.22);
-  border-color: rgba(255, 255, 255, 0.4);
-  transform: translateY(-1px);
+.btn-reset svg {
+  flex-shrink: 0;
 }
 
 .btn-reset:active {
@@ -71,11 +72,6 @@
   cursor: default;
   transform: none;
 }
-.btn-reset:disabled:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.28);
-}
-
 /* Main */
 .main {
   /* Single source of truth for the sidebar's width, overridden per
@@ -93,16 +89,12 @@
   position: relative;
 }
 
-/* Sidebar — floats over the dashboard (anchored to .main, which is
-   position:relative) instead of sharing space with it in the flex row, so
-   the dashboard always keeps its full width whether the Filter Builder is
-   open or not. */
+/* Sidebar — a normal flex sibling of .dashboard-wrap (see .main), so the
+   Filter Builder and the QuickSight dashboard sit side by side and the
+   dashboard's flex:1 width shrinks to make room for it. */
 .sidebar {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  z-index: 200;
+  position: relative;
+  flex-shrink: 0;
   width: var(--sidebar-width);
   background: var(--bg);
   box-shadow: 6px 0 28px rgba(0, 0, 0, 0.28), 1px 0 0 rgba(255, 255, 255, 0.12) inset;
@@ -141,11 +133,6 @@
   transition: left 0.25s ease, background 0.15s ease, width 0.15s ease;
 }
 
-.toggle-btn:hover {
-  background: var(--bg);
-  width: 22px;
-}
-
 .toggle-btn.collapsed {
   left: 0;
 }
@@ -154,10 +141,6 @@
   cursor: default;
   opacity: 0.6;
 }
-.toggle-btn:disabled:hover {
-  background: var(--header-navy);
-}
-
 /* --- Responsive ------------------------------------------------------- */
 @media (max-width: 1024px) {
   .main {
@@ -457,9 +440,6 @@
   color: var(--navy);
   transition: background 120ms ease;
 }
-.bm-panel-back:hover {
-  background: rgba(0, 107, 91, 0.1);
-}
 .bm-panel-title {
   font-size: 18px;
   font-weight: 700;
@@ -483,10 +463,6 @@
   cursor: pointer;
   color: #777;
   transition: background 120ms ease, color 120ms ease;
-}
-.bm-panel-close:hover {
-  background: #f2f1ee;
-  color: var(--dark);
 }
 .bm-panel-body {
   flex: 1;
@@ -570,11 +546,6 @@
   margin-bottom: 14px;
   box-shadow: 0 2px 8px rgba(0, 181, 155, 0.25);
   transition: background 120ms ease, transform 80ms ease, box-shadow 120ms ease;
-}
-.bm-add-btn:hover,
-.bm-save-btn:not(:disabled):hover {
-  color: #fff;
-  box-shadow: 0 4px 12px rgba(0, 107, 91, 0.3);
 }
 .bm-add-btn:active,
 .bm-save-btn:not(:disabled):active {
@@ -819,10 +790,6 @@
   border-radius: 6px;
   transition: background 120ms ease, color 120ms ease;
 }
-.bm-icon-btn:hover {
-  background: #f0f7f6;
-  color: var(--navy);
-}
 .bm-link-box {
   display: flex;
   gap: 6px;
@@ -851,9 +818,6 @@
   font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
-}
-.bm-copy-btn:hover {
-  background: rgba(0, 181, 155, 0.22);
 }
 .bm-row-menu-wrap {
   position: relative;
@@ -890,14 +854,8 @@
   cursor: pointer;
   color: #333;
 }
-.bm-dropdown button:hover {
-  background: #f2f1ee;
-}
 .bm-dropdown button.bm-danger {
   color: var(--danger);
-}
-.bm-dropdown button.bm-danger:hover {
-  background: rgba(192, 57, 43, 0.08);
 }
 .bm-detail {
   padding: 8px 14px 10px;
@@ -1015,9 +973,6 @@
   font-weight: 700;
   color: var(--dark);
   cursor: pointer;
-}
-.bm-pagination-btn:hover:not(:disabled) {
-  background: #e4e2dc;
 }
 .bm-pagination-btn:disabled {
   opacity: 0.4;

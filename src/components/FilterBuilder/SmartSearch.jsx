@@ -1,3 +1,4 @@
+import { Search } from 'lucide-react';
 import { memo, useEffect, useRef, useState } from 'react';
 import { searchAllColumns } from '../../api/filters';
 import { useFilters } from '../../context/FilterContext';
@@ -211,8 +212,12 @@ function SmartSearch({ onApplySelections }) {
             onKeyDown={(e) => e.key === 'Enter' && runSearch()}
             onBlur={handleBlur}
           />
-          <button className="fb-search-btn" onClick={runSearch} disabled={loading}>
-            {loading ? <span className="fb-search-btn-spinner" aria-hidden="true" /> : 'Search'}
+          <button className="fb-search-btn" onClick={runSearch} disabled={loading} title="Search" aria-label="Search">
+            {loading ? (
+              <span className="fb-search-btn-spinner" aria-hidden="true" />
+            ) : (
+              <Search size={15} strokeWidth={2.5} aria-hidden="true" />
+            )}
           </button>
           {query && (
             <button className="fb-search-clear-btn" onClick={clearSearch}>

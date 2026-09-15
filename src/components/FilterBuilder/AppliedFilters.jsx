@@ -117,7 +117,7 @@ function ValuesPopover({ col, values, anchorRect, onRemoveValue, onClearColumn, 
   );
 }
 
-function AppliedFilters({ onRemoveValue, onClearColumn }) {
+function AppliedFilters({ onRemoveValue, onClearColumn, onClearAll }) {
   const { appliedFilters } = useFilters();
   const entries = Object.entries(appliedFilters);
   const [openCol, setOpenCol] = useState(null);
@@ -138,8 +138,12 @@ function AppliedFilters({ onRemoveValue, onClearColumn }) {
   return (
     <>
       <div className="fb-applied-header">
-          <span className="fb-applied-title">Applied Filters</span>
-          <span className="fb-applied-count">{entries.length}</span>
+        <span className="fb-applied-title">Applied Filters</span>
+        {entries.length > 0 && (
+          <button type="button" className="fb-applied-clear-all" onClick={onClearAll}>
+            Clear all <span className="fb-applied-clear-all-count">{entries.length}</span>
+          </button>
+        )}
       </div>
       <div className="fb-applied-section">
 

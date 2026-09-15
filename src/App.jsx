@@ -1,3 +1,4 @@
+import { Bookmark, FileDown, RotateCcw, Search } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { FilterProvider } from './context/FilterContext';
 import { useQuickSightBridge } from './hooks/useQuickSightBridge';
@@ -173,9 +174,11 @@ function AppInner() {
             disabled={!dashboardReady}
             title={dashboardReady ? 'Toggle Filter Builder' : 'Waiting for dashboard to load…'}
           >
+            <Search size={14} strokeWidth={2.5} aria-hidden="true" />
             Search
           </button>
           <button className="btn-reset" onClick={handleExportPdf} title="Export dashboard to PDF">
+            <FileDown size={14} strokeWidth={2.5} aria-hidden="true" />
             Export to PDF
           </button>
           <button
@@ -183,9 +186,11 @@ function AppInner() {
             onClick={() => setBookmarksOpen(true)}
             title="View, open, save, rename, or delete saved bookmarks"
           >
+            <Bookmark size={14} strokeWidth={2.5} aria-hidden="true" />
             Bookmarks
           </button>
           <button className="btn-reset" onClick={handleResetAll}>
+            <RotateCcw size={14} strokeWidth={2.5} aria-hidden="true" />
             Reset all filters
           </button>
         </div>

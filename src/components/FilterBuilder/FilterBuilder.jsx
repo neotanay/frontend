@@ -189,14 +189,6 @@ export default function FilterBuilder({ onFilterApplied, onResetAll, onClearRow 
   };
 
   const handleClearAll = () => {
-    // appliedFilters itself is left to onResetAll (App's handleResetAll ->
-    // useQuickSightBridge's resetAll), which collapses it down to just the
-    // dashboard's own default parameter values rather than wiping it to
-    // nothing — a blanket clearAllFilters() here would erase those defaults
-    // too, then have them flicker back in once the async reset resolves.
-    // selectedColumn is left alone so the currently open column search
-    // doesn't collapse — the appliedFilters sync effect below will bring
-    // checkedValues in line with whatever onResetAll settles on.
     setCheckedValues([]);
     setTextInput('');
     lastPushedValuesRef.current = [];
@@ -275,6 +267,7 @@ export default function FilterBuilder({ onFilterApplied, onResetAll, onClearRow 
       </div>
       <SmartSearch onApplySelections={handleApplySearchSelections} />
 
+      <div className="fb-col-panel-wrap">
       <span className="fb-label" style={{ marginTop: 6 }}>
         Column
       </span>
@@ -295,7 +288,14 @@ export default function FilterBuilder({ onFilterApplied, onResetAll, onClearRow 
       {selectedColumn && (
         <div className="fb-values-wrap">
           <div className="fb-val-header">
-            <span>{selectedColumn}</span>
+            <span>
+              {selectedColumn}
+              {typeof columnInfo?.numDistinct === 'number' && (
+                <span className="fb-val-header-count">
+                  ({columnInfo.numDistinct.toLocaleString()})
+                </span>
+              )}
+            </span>
             <label className="fb-select-all">
               <input
                 type="checkbox"
@@ -351,33 +351,33 @@ export default function FilterBuilder({ onFilterApplied, onResetAll, onClearRow 
             value={textInput}
             onChange={(e) => setTextInput(e.target.value)}
           />
-          <div className="fb-text-hint">
-            Separate with <strong>commas</strong> or <strong>new lines</strong>
-          </div>
-          <div className="fb-combined-count">
-            {totalSelected > 0 ? `${totalSelected} value${totalSelected > 1 ? 's' : ''} selected` : ''}
+          <div className="fb-combined-count-row">
+            <span className="fb-combined-count">
+              {totalSelected > 0 ? `${totalSelected} value${totalSelected > 1 ? 's' : ''} selected` : ''}
+            </span>
+            {totalSelected > 0 && (
+              <button
+                type="button"
+                className="fb-btn fb-btn-apply fb-combined-apply-btn"
+                onClick={handleApply}
+              >
+                Apply filter
+              </button>
+            )}
           </div>
         </div>
       )}
-
-      <div className="fb-btn-row">
-        <button
-          className="fb-btn fb-btn-apply"
-          onClick={handleApply}
-          disabled={totalSelected === 0 && !appliedFilters[selectedColumn]}
-        >
-          Apply filter
-        </button>
-        <button className="fb-btn fb-btn-reset" onClick={handleClearAll}>
-          Clear all
-        </button>
       </div>
 
       {status.msg && <div className={`fb-status ${status.type}`}>{status.msg}</div>}
 
       {/* <hr className="fb-hr" /> */}
 
-      <AppliedFilters onRemoveValue={handleRemoveValue} onClearColumn={handleClearColumnRow} />
+      <AppliedFilters
+        onRemoveValue={handleRemoveValue}
+        onClearColumn={handleClearColumnRow}
+        onClearAll={handleClearAll}
+      />
     </div>
   );
 }

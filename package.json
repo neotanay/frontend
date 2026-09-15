@@ -14,6 +14,7 @@
   "dependencies": {
     "amazon-quicksight-embedding-sdk": "^2.11.3",
     "jspdf": "^4.2.1",
+    "lucide-react": "^1.46.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },

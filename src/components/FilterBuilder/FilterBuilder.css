@@ -59,10 +59,10 @@
 }
 
 .fb-label {
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
+  /* text-transform: uppercase; */
+  letter-spacing: 0.01em;
   /* color: rgba(255, 255, 255, 0.8); */
   display: block;
   margin-bottom: 4px;
@@ -112,7 +112,7 @@
   gap: 6px;
   /* Roughly the "Search" label's own width, so swapping it for just the
      spinner while loading doesn't visibly shrink/reflow the button. */
-  min-width: 46px;
+  min-width: 42px;
   background: var(--accent-yellow, #fac400);
   color: var(--dark);
   border: none;
@@ -125,11 +125,6 @@
   white-space: nowrap;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
   transition: filter 0.15s ease, transform 0.1s ease;
-}
-
-.fb-search-btn:hover:not(:disabled) {
-  filter: brightness(1.05);
-  transform: translateY(-1px);
 }
 
 .fb-search-btn:disabled {
@@ -377,10 +372,6 @@
   white-space: nowrap;
 }
 
-.fb-search-apply-all:hover {
-  opacity: 0.88;
-}
-
 .fb-search-apply-all:disabled {
   opacity: 0.5;
   cursor: default;
@@ -407,10 +398,6 @@
   transition: background 0.15s;
 }
 
-.fb-search-load-more-btn:hover:not(:disabled) {
-  background: rgba(0, 181, 155, 0.18);
-}
-
 .fb-search-load-more-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
@@ -422,13 +409,24 @@
   color: #c0392b;
 }
 
-/* Column select */
+/* Column select — the text search and the "browse all" dropdown button are
+   two visually separate controls side by side (like .fb-search-row above),
+   not one combobox doing both jobs. */
 .fb-col-select-wrap {
   position: relative;
   margin-bottom: 8px;
   /* See .fb-title — never shrink; .fb-applied-list is the one flex item
      that should absorb any squeeze. */
   flex-shrink: 0;
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.fb-col-select-input-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
 }
 
 .fb-col-select-input {
@@ -456,34 +454,140 @@
   cursor: pointer;
 }
 
+/* Styled like .fb-input (white fill, translucent white border) so it reads
+   clearly as its own button against the sidebar's solid teal background,
+   instead of blending into it. */
+.fb-col-select-toggle {
+  flex-shrink: 0;
+  width: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid rgba(255, 255, 255, 0.5);
+  border-radius: var(--radius);
+  background: #fff;
+  color: var(--dark);
+  cursor: pointer;
+  padding: 0;
+  /* transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease; */
+}
+
+.fb-col-select-toggle.open {
+  border-color: var(--white);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.28);
+}
+
+.fb-col-select-toggle:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.fb-col-select-caret {
+  display: block;
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.fb-col-select-caret.open {
+  transform: rotate(180deg);
+}
+
 .fb-col-select-dropdown {
   position: absolute;
   left: 0;
   right: 0;
-  top: calc(100% + 4px);
+  top: calc(100% + 6px);
   z-index: 20;
+  border-color: rgba(0, 107, 91, 0.35);
+  border-radius: var(--radius);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.18), 0 3px 10px rgba(0, 0, 0, 0.08);
+  animation: fb-col-select-dropdown-in 0.12s ease-out;
 }
 
+@keyframes fb-col-select-dropdown-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Capped to roughly 5 rows tall (each row is ~36px with its padding,
+   hairline and margin) so the list reads as a short, scannable menu
+   instead of a long scroll — more columns still scroll within this box. */
 .fb-col-select-dropdown .fb-search-results {
-  max-height: 220px;
+  max-height: 500px;
+  padding: 4px;
 }
 
-/* Values list (combined mode) */
+/* Rows get their own rounded hover/selected highlight plus a thin hairline
+   between them (not a heavy full-width border) and a right-aligned
+   checkmark on the selected column, so the list reads as a tidy set of
+   options rather than a plain flat table. */
+.fb-col-select-dropdown .fb-search-result-item {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  margin-bottom: 2px;
+}
+
+.fb-col-select-dropdown .fb-search-result-item:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.fb-col-select-dropdown .fb-search-result-item:hover {
+  background: rgba(0, 107, 91, 0.08);
+}
+
+.fb-col-select-dropdown .fb-search-result-item.selected {
+  background: rgba(0, 107, 91, 0.12);
+}
+
+.fb-col-select-dropdown .fb-search-result-item.selected span {
+  color: var(--navy);
+  font-weight: 600;
+}
+
+.fb-col-select-dropdown .fb-search-result-item.selected::after {
+  content: '✓';
+  flex-shrink: 0;
+  color: var(--navy);
+  font-weight: 700;
+  font-size: 12px;
+}
+
+/* Anchors the floating values panel to right below the Column control
+   (see .fb-values-wrap) instead of the panel needing to know how tall
+   everything above it happens to be. */
+.fb-col-panel-wrap {
+  position: relative;
+}
+
+/* Values list (combined mode) — floats over Applied Filters instead of
+   pushing it down the page. Previously a normal-flow block, so opening it
+   shoved the whole Applied Filters section further down the sidebar every
+   time a column was picked; as an overlay anchored to .fb-col-panel-wrap,
+   it now sits on top without changing anything else's position. */
 .fb-values-wrap {
-  background: var(--card-bg);
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  z-index: 50;
+  margin-top: 6px;
+  max-height: min(60vh, 420px);
+  overflow-y: auto;
+  /* Solid, not var(--card-bg)'s translucent white — as a floating overlay
+     it now sits directly over Applied Filters, and any transparency let
+     that section's text bleed through underneath it. */
+  background: #fff;
   border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: var(--radius);
-  overflow: hidden;
-  margin-bottom: 8px;
-  /* .fb-panel is a flex column with overflow-y:auto. Per the flexbox spec, a
-     flex item with non-"visible" overflow gets an automatic minimum size of
-     0 on the main axis — so without flex-shrink:0, once the sibling Applied
-     Filters section grows tall (e.g. after a few columns are filtered),
-     flexbox shrinks this box to fit instead of letting .fb-panel scroll,
-     silently clipping (not just scrolling past) the "or type values"
-     textarea below the checkbox list. flex-shrink:0 keeps this box at its
-     full natural height so .fb-panel's own scroll is what handles overflow. */
-  flex-shrink: 0;
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.22), 0 3px 10px rgba(0, 0, 0, 0.1);
 }
 
 .fb-val-header {
@@ -501,6 +605,14 @@
   color: var(--navy);
   text-transform: uppercase;
   letter-spacing: 0.07em;
+}
+
+.fb-val-header span.fb-val-header-count {
+  margin-left: 4px;
+  font-weight: 600;
+  color: rgba(0, 107, 91, 0.65);
+  text-transform: none;
+  letter-spacing: normal;
 }
 
 .fb-select-all {
@@ -635,15 +747,12 @@
   background: #fff;
 }
 
-.fb-text-hint {
-  font-size: 10px;
-  color: var(--muted);
-  padding: 4px 10px 8px;
-  line-height: 1.5;
-}
-
-.fb-text-hint strong {
-  color: var(--navy);
+.fb-combined-count-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
 }
 
 .fb-combined-count {
@@ -651,7 +760,16 @@
   font-weight: 700;
   color: var(--navy);
   min-height: 14px;
-  padding: 0 10px 6px;
+}
+
+/* Extra-specific (over .fb-btn's own flex:1) so this stays a compact,
+   content-sized pill instead of stretching to fill the row. */
+.fb-combined-count-row .fb-combined-apply-btn {
+  flex: 0 0 auto;
+  padding: 10px 12px;
+  font-size: 10.5px;
+  border-radius: var(--radius-sm);
+  box-shadow: none;
 }
 
 .fb-val-warning {
@@ -687,28 +805,12 @@
   transition: background 0.15s;
 }
 
-.fb-load-more-btn:hover:not(:disabled) {
-  background: rgba(0, 181, 155, 0.2);
-}
-
 .fb-load-more-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
 /* Buttons */
-.fb-btn-row {
-  display: flex;
-  gap: 8px;
-  position: sticky;
-  bottom: 0;
-  padding: 8px 0 2px;
-  z-index: 10;
-  /* See .fb-title — never shrink; .fb-applied-list is the one flex item
-     that should absorb any squeeze. */
-  flex-shrink: 0;
-}
-
 .fb-btn {
   flex: 1;
   padding: 9px 14px;
@@ -719,11 +821,6 @@
   font-family: var(--font);
   cursor: pointer;
   transition: opacity 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
-}
-
-.fb-btn:hover {
-  opacity: 0.92;
-  transform: translateY(-1px);
 }
 
 .fb-btn:active {
@@ -740,18 +837,6 @@
   background: var(--dark);
   color: var(--white);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-}
-
-.fb-btn-reset {
-  background: rgba(255, 255, 255, 0.25);
-  color: var(--white);
-  border: 1.5px solid rgba(255, 255, 255, 0.5);
-  flex: 0 0 auto;
-  padding: 9px 16px;
-}
-
-.fb-btn-reset:hover {
-  background: rgba(255, 255, 255, 0.35);
 }
 
 .fb-hr {
@@ -775,9 +860,10 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  background: var(--white);
+  background: var(--bg);
   border-radius: var(--radius);
   border-radius: 0 0 12px 12px;
+  border: 3px solid rgba(0, 107, 91, 0.14);
   /* No top padding — the header bar sits flush against the top edge,
      clipped to this rounded corner by overflow:hidden below, instead of
      leaving a strip of white section padding showing above it. */
@@ -788,35 +874,63 @@
 .fb-applied-header {
   display: flex;
   align-items: center;
-  border-radius: 12px 12px 0 0;
   justify-content: space-between;
+  gap: 10px;
+  border-radius: 8px 8px 0 0;
   margin-top: 10px;
   flex-shrink: 0;
-  padding: 6px 10px;
-  border: 10px;
-  /* Same teal bar treatment as .fb-applied-label-strip (the CASE_ID-style
-     row header), so this header reads as one more bar in that family. */
-  background: #3e3d3d;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 1px rgba(0, 0, 0, 0.03);
+  padding: 9px 12px;
+  /* A subtle gradient instead of a flat fill gives the bar some depth
+     without pulling in a new color — still reads as "dark header" like
+     .fb-applied-label-strip's teal bars, just in the dark family. */
+  background: linear-gradient(155deg, #333232 0%, #1f1e1e 100%);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
 .fb-applied-title {
+  font-size: 12px;
+  font-weight: 600;
+  /* text-transform: uppercase; */
+  letter-spacing: 0.01em;
+  color: rgba(255, 255, 255, 0.92);
+  /* white-space: nowrap; */
+}
+
+/* Sits in the middle of the header bar, between the title and the count
+   badge, so the header reads as title -> action -> total at a glance. */
+.fb-applied-clear-all {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--white);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 8px 8px;
+  padding: 4px 4px;
   font-size: 9px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--white);
+  letter-spacing: 0.05em;
+  font-family: var(--font);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
 }
 
-.fb-applied-count {
-  font-size: 11px;
-  font-weight: 700;
+.fb-applied-clear-all:active {
+  transform: translateY(0);
+}
+
+.fb-applied-clear-all-count {
+  display: inline-block;
   color: var(--white);
   background: var(--navy);
-  border-radius: 12px;
-  padding: 2px 7px;
-  min-width: 18px;
-  text-align: center;
+  border-radius: 50%;
+  padding: 1px 6px;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.5;
 }
 
 .fb-empty-msg {
@@ -826,7 +940,7 @@
   padding: 10px;
   /* border:10px; */
   margin-top: 10px;
-  background: rgba(0, 107, 91, 0.06);
+  background: rgba(235, 240, 240, 0.503);
   border: 1px dashed rgba(0, 107, 91, 0.25);
   border-radius: 6px;
 }
@@ -926,12 +1040,6 @@
   transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
 }
 
-.fb-clear-row:hover {
-  background: var(--danger);
-  color: var(--white);
-  transform: scale(1.1);
-}
-
 .fb-clear-row:focus-visible {
   outline: 2px solid var(--white);
   outline-offset: 2px;
@@ -1012,11 +1120,6 @@
   flex-shrink: 0;
 }
 
-.fb-chip-x:hover {
-  background: var(--danger);
-  color: var(--white);
-}
-
 /* Per-value "more"/"less" toggle for a single chip's own long text (e.g. a
    free-text narrative) — separate from .fb-chip-more, which collapses a
    whole column's extra chips instead of one chip's own text. */
@@ -1032,10 +1135,6 @@
   cursor: pointer;
 }
 
-.fb-chip-more-toggle:hover {
-  opacity: 0.75;
-}
-
 .fb-chip-more {
   display: inline-flex;
   align-items: center;
@@ -1048,10 +1147,6 @@
   font-weight: 700;
   color: var(--navy);
   cursor: pointer;
-}
-
-.fb-chip-more:hover {
-  background: rgba(0, 107, 91, 0.1);
 }
 
 .fb-values-popover {
@@ -1099,11 +1194,6 @@
   flex-shrink: 0;
 }
 
-.fb-values-popover-close:hover {
-  background: var(--danger);
-  color: var(--white);
-}
-
 .fb-values-popover-search {
   margin: 8px 10px 0;
   border-color: #ddd;
@@ -1146,10 +1236,6 @@
   color: var(--danger);
   cursor: pointer;
   text-align: center;
-}
-
-.fb-values-popover-clear:hover {
-  background: rgba(192, 57, 43, 0.08);
 }
 
 .fb-status {
