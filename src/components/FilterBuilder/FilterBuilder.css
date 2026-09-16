@@ -863,7 +863,7 @@
   background: var(--bg);
   border-radius: var(--radius);
   border-radius: 0 0 12px 12px;
-  border: 3px solid rgba(0, 107, 91, 0.14);
+  border: 1px solid rgba(0, 107, 91, 1);
   /* No top padding — the header bar sits flush against the top edge,
      clipped to this rounded corner by overflow:hidden below, instead of
      leaving a strip of white section padding showing above it. */
@@ -876,7 +876,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  border-radius: 8px 8px 0 0;
+  border-radius: 6px 6px 0 0;
   margin-top: 10px;
   flex-shrink: 0;
   padding: 9px 12px;

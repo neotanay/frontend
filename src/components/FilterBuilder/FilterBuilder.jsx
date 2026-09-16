@@ -355,7 +355,7 @@ export default function FilterBuilder({ onFilterApplied, onResetAll, onClearRow 
             <span className="fb-combined-count">
               {totalSelected > 0 ? `${totalSelected} value${totalSelected > 1 ? 's' : ''} selected` : ''}
             </span>
-            {totalSelected > 0 && (
+            {(totalSelected > 0 || appliedFilters[selectedColumn]) && (
               <button
                 type="button"
                 className="fb-btn fb-btn-apply fb-combined-apply-btn"

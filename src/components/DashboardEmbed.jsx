@@ -89,6 +89,10 @@ const DashboardEmbed = forwardRef(function DashboardEmbed(
           sheetOptions: {
             fitSheetToWidth: true,
           },
+          // The native undo/redo capability and its toolbar icon are tied
+          // to this one flag with no way to separate them, so leave it off
+          // -- undo/redo in the header is implemented as our own filter
+          // history (see App.jsx) instead of QuickSight's own history.
           onMessage: async (messageEvent) => {
             if (messageEvent.eventName === 'PARAMETERS_CHANGED') {
               const changed = messageEvent.message?.changedParameters || [];

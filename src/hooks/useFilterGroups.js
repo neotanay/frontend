@@ -67,6 +67,13 @@ export function useFilterGroups(embedRef, dashboardReady) {
   const nativeDatasetIdRef = useRef({});
   const nativeCrossDatasetRef = useRef({});
   const knownFilterGroupsRef = useRef({});
+  // Snapshot of each native FilterGroup column's value as first discovered
+  // (e.g. MED_YN/NONMED_YN's "Y"), captured once and never overwritten.
+  // Some of these dropdown Controls have no "All" option authored in
+  // QuickSight -- disabling their FilterGroup to empty just leaves the
+  // control blank instead of showing "All" like other columns do. Clearing
+  // one of these columns re-applies this default instead of blanking it.
+  const defaultFilterGroupValuesRef = useRef({});
   const knownGroupIdsRef = useRef({});
   const pendingRef = useRef([]);
   const readyRef = useRef(false);
@@ -192,14 +199,25 @@ export function useFilterGroups(embedRef, dashboardReady) {
         if (g.CrossDataset) {
           nativeCrossDatasetRef.current[colName] = g.CrossDataset;
         }
-        const vals = cf.Configuration?.FilterListConfiguration?.CategoryValues || [];
-        knownFilterGroupsRef.current[colName] = vals.map(String);
+        const vals =
+          g.Status !== 'DISABLED' ? cf.Configuration?.FilterListConfiguration?.CategoryValues || [] : [];
+        const stringVals = vals.map(String);
+        knownFilterGroupsRef.current[colName] = stringVals;
+        if (stringVals.length) {
+          defaultFilterGroupValuesRef.current[colName] = stringVals;
+        }
+        // discoverNativeFilterGroups only runs once per column (guarded by
+        // nativeFilterGroupIdRef above), right when a fresh embed session
+        // adopts a pre-existing FilterGroup -- e.g. after a page reload.
+        // Without pushing it into appliedFilters here, the sidebar has no
+        // way to know this filter exists until something else touches it.
+        setColumnFilter(colName, stringVals, colName);
         console.log(`[filter-groups] adopted native FilterGroup for "${colName}":`, vals);
       });
     } catch (e) {
       console.error('[filter-groups] discoverNativeFilterGroups failed:', e.message);
     }
-  }, [embedRef, filterGroupColumns]);
+  }, [embedRef, filterGroupColumns, setColumnFilter]);
 
   const cleanupStaleFilterGroups = useCallback(async () => {
     const dashboard = embedRef.current;
@@ -241,9 +259,17 @@ export function useFilterGroups(embedRef, dashboardReady) {
         if (!values.length) {
           if (existed) {
             if (isNative) {
-              const groups = buildCategoryFilterGroupsForColumn(col, known[col] || [], 'DISABLED');
-              await dashboard.updateFilterGroups(groups);
-              known[col] = [];
+              const fallbackDefault = defaultFilterGroupValuesRef.current[col];
+              if (fallbackDefault?.length) {
+                const groups = buildCategoryFilterGroupsForColumn(col, fallbackDefault, 'ENABLED');
+                await dashboard.updateFilterGroups(groups);
+                known[col] = fallbackDefault;
+                values = fallbackDefault;
+              } else {
+                const groups = buildCategoryFilterGroupsForColumn(col, known[col] || [], 'DISABLED');
+                await dashboard.updateFilterGroups(groups);
+                known[col] = [];
+              }
             } else {
               const idsToRemove = [...existingGroupIds];
               if (idsToRemove.length) await dashboard.removeFilterGroups(idsToRemove);
@@ -342,6 +368,12 @@ export function useFilterGroups(embedRef, dashboardReady) {
     if (!dashboard || !cols.length) return;
     const nativeCols = cols.filter((c) => nativeFilterGroupIdRef.current[c]);
     const ownCols = cols.filter((c) => !nativeFilterGroupIdRef.current[c]);
+    // Same reasoning as applyColumnFilter above: some native dropdown
+    // Controls (e.g. MED_YN/NONMED_YN) have no "All" option authored in
+    // QuickSight, so disabling them to empty just leaves them blank. Those
+    // get their original default re-applied instead of disabled.
+    const nativeColsWithDefault = nativeCols.filter((c) => defaultFilterGroupValuesRef.current[c]?.length);
+    const nativeColsWithoutDefault = nativeCols.filter((c) => !defaultFilterGroupValuesRef.current[c]?.length);
     try {
       if (ownCols.length) {
         const ownGroupIds = [];
@@ -355,18 +387,30 @@ export function useFilterGroups(embedRef, dashboardReady) {
           delete knownGroupIdsRef.current[c];
         });
       }
-      if (nativeCols.length) {
-        const groups = nativeCols.flatMap((c) => buildCategoryFilterGroupsForColumn(c, known[c] || [], 'DISABLED'));
+      if (nativeColsWithoutDefault.length) {
+        const groups = nativeColsWithoutDefault.flatMap((c) =>
+          buildCategoryFilterGroupsForColumn(c, known[c] || [], 'DISABLED')
+        );
         await dashboard.updateFilterGroups(groups);
-        nativeCols.forEach((c) => {
+        nativeColsWithoutDefault.forEach((c) => {
           known[c] = [];
+        });
+      }
+      if (nativeColsWithDefault.length) {
+        const groups = nativeColsWithDefault.flatMap((c) =>
+          buildCategoryFilterGroupsForColumn(c, defaultFilterGroupValuesRef.current[c], 'ENABLED')
+        );
+        await dashboard.updateFilterGroups(groups);
+        nativeColsWithDefault.forEach((c) => {
+          known[c] = defaultFilterGroupValuesRef.current[c];
         });
       }
     } catch (e) {
       console.error('[filter-groups] clearAllKnownFilterGroups failed:', e.message);
     }
-    cols.forEach((c) => clearColumn(c));
-  }, [embedRef, buildCategoryFilterGroupsForColumn, clearColumn]);
+    ownCols.concat(nativeColsWithoutDefault).forEach((c) => clearColumn(c));
+    nativeColsWithDefault.forEach((c) => setColumnFilter(c, defaultFilterGroupValuesRef.current[c], c));
+  }, [embedRef, buildCategoryFilterGroupsForColumn, clearColumn, setColumnFilter]);
 
   const pollFilterGroupColumns = useCallback(async () => {
     const dashboard = embedRef.current;

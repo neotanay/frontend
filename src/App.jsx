@@ -1,4 +1,4 @@
-import { Bookmark, FileDown, RotateCcw, Search } from 'lucide-react';
+import { Bookmark, FileDown, Redo2, RotateCcw, Search, Undo2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { FilterProvider } from './context/FilterContext';
 import { useQuickSightBridge } from './hooks/useQuickSightBridge';
@@ -12,6 +12,12 @@ import BookmarksPanel from './components/BookmarksPanel';
 import ApiStatusBanner from './components/ApiStatusBanner';
 import Toast from './components/Toast';
 import './App.css';
+
+const FILTER_HISTORY_LIMIT = 20;
+// How long to keep ignoring appliedFilters changes after an undo/redo
+// restore finishes, so the several setColumnFilter/setParameters calls it
+// triggers settle before we resume treating changes as new user actions.
+const FILTER_HISTORY_SETTLE_MS = 300;
 
 function AppInner() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
@@ -28,7 +34,7 @@ function AppInner() {
     clearTimeout(resizeVeilTimerRef.current);
     resizeVeilTimerRef.current = setTimeout(() => setDashboardResizing(false), 450);
   };
-  const { appliedFilters, paramForColumn, filterGroupColumns } = useFilters();
+  const { appliedFilters, paramForColumn, filterGroupColumns, columnToParams, canonicalColumn } = useFilters();
 
   const { sendToQuickSight, resetAll, resetAndApply, handleParametersChanged } =
     useQuickSightBridge(embedRef);
@@ -54,13 +60,65 @@ function AppInner() {
 
   const { open: openBookmark } = useBookmarks({ onApplied: handleBookmarkApplied });
 
-  const handleFilterApplied = (column, values) => {
-    if (filterGroupColumns.has(column)) {
-      const isCleared = values.length === 1 && String(values[0]).toLowerCase() === 'all';
-      applyColumnFilter(column, isCleared ? [] : values);
+  // Our own undo/redo history over appliedFilters, since QuickSight's native
+  // undo/redo can't be enabled without also showing its toolbar icon (see
+  // DashboardEmbed.jsx). This only knows about filter/parameter changes --
+  // it can't see or reverse in-sheet actions like sorts or drill-downs.
+  const [filterPast, setFilterPast] = useState([]);
+  const [filterFuture, setFilterFuture] = useState([]);
+  const lastFiltersSnapshotRef = useRef(appliedFilters);
+  const restoringFiltersRef = useRef(false);
+  const filterHistoryMountedRef = useRef(false);
+
+  useEffect(() => {
+    if (!filterHistoryMountedRef.current) {
+      filterHistoryMountedRef.current = true;
+      lastFiltersSnapshotRef.current = appliedFilters;
       return;
     }
-    sendToQuickSight(paramForColumn(column), values);
+    if (restoringFiltersRef.current) {
+      lastFiltersSnapshotRef.current = appliedFilters;
+      return;
+    }
+    setFilterPast((prev) => [...prev.slice(-FILTER_HISTORY_LIMIT + 1), lastFiltersSnapshotRef.current]);
+    setFilterFuture([]);
+    lastFiltersSnapshotRef.current = appliedFilters;
+  }, [appliedFilters]);
+
+  const restoreFiltersSnapshot = async (snapshot) => {
+    const regularParams = {};
+    const groupUpdates = [];
+    Object.entries(snapshot || {}).forEach(([col, f]) => {
+      if (filterGroupColumns.has(col)) {
+        groupUpdates.push([col, f.values]);
+      } else {
+        const paramName = f.paramName || paramForColumn(col);
+        if (paramName) regularParams[paramName] = f.values;
+      }
+    });
+    await resetAndApply(regularParams);
+    await clearAllKnownFilterGroups();
+    for (const [col, values] of groupUpdates) {
+      await applyColumnFilter(col, values);
+    }
+  };
+
+  const handleFilterApplied = (column, values) => {
+    const isCleared = values.length === 1 && String(values[0]).toLowerCase() === 'all';
+    const resolvedValues = isCleared ? [] : values;
+    if (filterGroupColumns.has(column)) {
+      applyColumnFilter(column, resolvedValues);
+      // Disabling the FilterGroup clears the actual filtering, but the
+      // native Controls bar/"applied filters" banner reflects the
+      // underlying parameter, not the FilterGroup's status -- so if this
+      // column also has a real backing parameter, reset that too or the
+      // banner keeps showing the old value even though data is unfiltered.
+      if (isCleared && columnToParams[canonicalColumn(column)]) {
+        sendToQuickSight(paramForColumn(column), []);
+      }
+      return;
+    }
+    sendToQuickSight(paramForColumn(column), resolvedValues);
   };
 
   const handleResetAll = async () => {
@@ -71,6 +129,9 @@ function AppInner() {
   const handleClearRow = (clearedCol) => {
     if (filterGroupColumns.has(clearedCol)) {
       applyColumnFilter(clearedCol, []);
+      if (columnToParams[canonicalColumn(clearedCol)]) {
+        sendToQuickSight(paramForColumn(clearedCol), []);
+      }
       return;
     }
     const remaining = {};
@@ -139,6 +200,44 @@ function AppInner() {
   }, []);
 
   //blue ribbon bridge----End
+  const handleUndo = async () => {
+    if (!filterPast.length || restoringFiltersRef.current) return;
+    const previous = filterPast[filterPast.length - 1];
+    const current = lastFiltersSnapshotRef.current;
+    setFilterPast((prev) => prev.slice(0, -1));
+    setFilterFuture((prev) => [...prev, current]);
+    restoringFiltersRef.current = true;
+    try {
+      await restoreFiltersSnapshot(previous);
+    } catch (e) {
+      console.error('[undo] failed:', e);
+    } finally {
+      setTimeout(() => {
+        restoringFiltersRef.current = false;
+        lastFiltersSnapshotRef.current = previous;
+      }, FILTER_HISTORY_SETTLE_MS);
+    }
+  };
+
+  const handleRedo = async () => {
+    if (!filterFuture.length || restoringFiltersRef.current) return;
+    const next = filterFuture[filterFuture.length - 1];
+    const current = lastFiltersSnapshotRef.current;
+    setFilterFuture((prev) => prev.slice(0, -1));
+    setFilterPast((prev) => [...prev, current]);
+    restoringFiltersRef.current = true;
+    try {
+      await restoreFiltersSnapshot(next);
+    } catch (e) {
+      console.error('[redo] failed:', e);
+    } finally {
+      setTimeout(() => {
+        restoringFiltersRef.current = false;
+        lastFiltersSnapshotRef.current = next;
+      }, FILTER_HISTORY_SETTLE_MS);
+    }
+  };
+
   const handleExportPdf = async () => {
     if (!embedRef.current?.isReady()) {
       console.warn('[export] dashboard not ready, dropping export request');
@@ -172,14 +271,29 @@ function AppInner() {
             className={`btn-reset${sidebarCollapsed ? '' : ' active'}`}
             onClick={toggleSidebar}
             disabled={!dashboardReady}
-            title={dashboardReady ? 'Toggle Filter Builder' : 'Waiting for dashboard to load…'}
+            title={dashboardReady     ? 'Toggle Filter Builder' : 'Waiting for dashboard to load…'}
           >
             <Search size={14} strokeWidth={2.5} aria-hidden="true" />
             Search
           </button>
+          <button
+            className="btn-reset"
+            onClick={handleUndo}
+            disabled={!dashboardReady || !filterPast.length}
+            title="Undo last filter change"
+          >
+            <Undo2 size={14} strokeWidth={2.5} aria-hidden="true" />
+          </button>
+          <button
+            className="btn-reset"
+            onClick={handleRedo}
+            disabled={!dashboardReady || !filterFuture.length}
+            title="Redo last filter change"
+          >
+            <Redo2 size={14} strokeWidth={2.5} aria-hidden="true" />
+          </button>
           <button className="btn-reset" onClick={handleExportPdf} title="Export dashboard to PDF">
             <FileDown size={14} strokeWidth={2.5} aria-hidden="true" />
-            Export to PDF
           </button>
           <button
             className="btn-reset"
@@ -187,11 +301,9 @@ function AppInner() {
             title="View, open, save, rename, or delete saved bookmarks"
           >
             <Bookmark size={14} strokeWidth={2.5} aria-hidden="true" />
-            Bookmarks
           </button>
           <button className="btn-reset" onClick={handleResetAll}>
             <RotateCcw size={14} strokeWidth={2.5} aria-hidden="true" />
-            Reset all filters
           </button>
         </div>
       </header>
