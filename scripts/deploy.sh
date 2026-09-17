@@ -7,12 +7,12 @@ repo_root="$(cd "$script_dir/.." && pwd)"
 APPS_JSON="${1:-$script_dir/apps.json}"
 BUCKET_NAME="${2:-}"
 CLOUDFRONT_DISTRIBUTION_ID="${3:-}"
-APP_LIST="${3:-}"
+APP_LIST="${4:-}"
 
 if [ -z "$BUCKET_NAME" ] || [ -z "$APP_LIST" ]; then
     echo "Usage:"
     echo "  $0 <apps.json> <bucket-name> <cloudfront-id> <app1,app2,app3>"
-    echo "./scripts/deploy.sh ./scripts/apps_.json argus-cpd-dashboard-web-859217211726 E1PC8Z0SI4SX1O safety_view"
+    echo "./scripts/deploy.sh ./scripts/apps.json argus-cpd-dashboard-web-859217211726 E1PC8Z0SI4SX1O safety_view"
     exit 1
 fi
 
