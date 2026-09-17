@@ -12,6 +12,18 @@ function filterGroupColumnsFromDatasetMap(datasetMap) {
   return cols;
 }
 
+function parseDefaultFilterValues(raw) {
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    console.warn('[filterGroups] VITE_DEFAULT_FILTER_VALUES is not valid JSON, ignoring it:', raw);
+    return {};
+  }
+}
+const DEFAULT_FILTER_VALUES = parseDefaultFilterValues(import.meta.env.VITE_DEFAULT_FILTER_VALUES);
+
 const FilterContext = createContext(null);
 
 function sameValues(a = [], b = []) {
@@ -33,6 +45,9 @@ export function FilterProvider({ children }) {
   const [crossDatasetColumns, setCrossDatasetColumns] = useState(new Set());
   const [defaultDatasetIdentifier, setDefaultDatasetIdentifier] = useState('');
   const backendFilterGroupColumnsLoadedRef = useRef(false);
+
+  const [defaultFilterValues] = useState(() => DEFAULT_FILTER_VALUES);
+  const [defaultFilterColumns] = useState(() => new Set(Object.keys(DEFAULT_FILTER_VALUES)));
 
   useEffect(() => {
     let cancelled = false;
@@ -146,6 +161,19 @@ export function FilterProvider({ children }) {
     [filterGroupColumns, canonicalColumn]
   );
 
+  const isDefaultFilterColumn = useCallback(
+    (column) => defaultFilterColumns.has(canonicalColumn(column)),
+    [defaultFilterColumns, canonicalColumn]
+  );
+
+  const getDefaultFilterValue = useCallback(
+    (column) => {
+      const raw = defaultFilterValues[canonicalColumn(column)];
+      return raw == null ? null : [String(raw)];
+    },
+    [defaultFilterValues, canonicalColumn]
+  );
+
   const setColumnFilter = useCallback((rawCol, values, paramName) => {
     const col = canonicalColumn(rawCol);
     setAppliedFilters((prev) => {
@@ -254,6 +282,10 @@ export function FilterProvider({ children }) {
       setColumnMeta,
       filterGroupColumns,
       isFilterGroupColumn,
+      defaultFilterColumns,
+      isDefaultFilterColumn,
+      defaultFilterValues,
+      getDefaultFilterValue,
       columnDatasetMap,
       datasetMap,
       crossDatasetColumns,
@@ -279,6 +311,10 @@ export function FilterProvider({ children }) {
       columnMeta,
       filterGroupColumns,
       isFilterGroupColumn,
+      defaultFilterColumns,
+      isDefaultFilterColumn,
+      defaultFilterValues,
+      getDefaultFilterValue,
       columnDatasetMap,
       datasetMap,
       crossDatasetColumns,

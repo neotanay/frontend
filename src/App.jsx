@@ -34,11 +34,34 @@ function AppInner() {
     clearTimeout(resizeVeilTimerRef.current);
     resizeVeilTimerRef.current = setTimeout(() => setDashboardResizing(false), 450);
   };
-  const { appliedFilters, paramForColumn, filterGroupColumns, columnToParams, canonicalColumn } = useFilters();
+  const {
+    appliedFilters,
+    paramForColumn,
+    filterGroupColumns,
+    columnToParams,
+    canonicalColumn,
+    defaultFilterValues,
+    getDefaultFilterValue,
+  } = useFilters();
 
   const { sendToQuickSight, resetAll, resetAndApply, handleParametersChanged } =
     useQuickSightBridge(embedRef);
   const { applyColumnFilter, clearAllKnownFilterGroups } = useFilterGroups(embedRef, dashboardReady);
+
+  const appliedDefaultFiltersRef = useRef(false);
+  useEffect(() => {
+    if (!dashboardReady || appliedDefaultFiltersRef.current) return;
+    appliedDefaultFiltersRef.current = true;
+    Object.keys(defaultFilterValues).forEach((column) => {
+      const values = getDefaultFilterValue(column);
+      if (!values) return;
+      if (filterGroupColumns.has(column)) {
+        applyColumnFilter(column, values);
+      } else {
+        sendToQuickSight(paramForColumn(column), values);
+      }
+    });
+  }, [dashboardReady]);
 
   const bmIdRef = useRef(new URLSearchParams(window.location.search).get('bm'));
   const bmAppliedRef = useRef(false);
@@ -105,16 +128,11 @@ function AppInner() {
 
   const handleFilterApplied = (column, values) => {
     const isCleared = values.length === 1 && String(values[0]).toLowerCase() === 'all';
-    const resolvedValues = isCleared ? [] : values;
+    const resolvedValues = isCleared ? getDefaultFilterValue(column) || [] : values;
     if (filterGroupColumns.has(column)) {
       applyColumnFilter(column, resolvedValues);
-      // Disabling the FilterGroup clears the actual filtering, but the
-      // native Controls bar/"applied filters" banner reflects the
-      // underlying parameter, not the FilterGroup's status -- so if this
-      // column also has a real backing parameter, reset that too or the
-      // banner keeps showing the old value even though data is unfiltered.
       if (isCleared && columnToParams[canonicalColumn(column)]) {
-        sendToQuickSight(paramForColumn(column), []);
+        sendToQuickSight(paramForColumn(column), resolvedValues);
       }
       return;
     }
@@ -126,21 +144,28 @@ function AppInner() {
     await clearAllKnownFilterGroups();
   };
 
-  const handleClearRow = (clearedCol) => {
+  const handleClearRow = async (clearedCol) => {
     if (filterGroupColumns.has(clearedCol)) {
       applyColumnFilter(clearedCol, []);
       if (columnToParams[canonicalColumn(clearedCol)]) {
-        sendToQuickSight(paramForColumn(clearedCol), []);
+        sendToQuickSight(paramForColumn(clearedCol), getDefaultFilterValue(clearedCol) || []);
       }
       return;
     }
     const remaining = {};
+    const groupUpdates = [];
     Object.entries(appliedFilters).forEach(([col, f]) => {
       if (col === clearedCol) return;
-      if (filterGroupColumns.has(col)) return;
+      if (filterGroupColumns.has(col)) {
+        groupUpdates.push([col, f.values]);
+        return;
+      }
       remaining[f.paramName || paramForColumn(col)] = f.values;
     });
-    resetAndApply(remaining);
+    await resetAndApply(remaining);
+    for (const [col, values] of groupUpdates) {
+      await applyColumnFilter(col, values);
+    }
   };
 
   const handleParameterChange = (changedParameters, eventName) => {

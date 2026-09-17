@@ -59,6 +59,8 @@ export function useFilterGroups(embedRef, dashboardReady) {
     defaultDatasetIdentifier,
     setColumnFilter,
     clearColumn,
+    isDefaultFilterColumn,
+    getDefaultFilterValue,
   } = useFilters();
 
   const sheetIdRef = useRef(null);
@@ -67,13 +69,6 @@ export function useFilterGroups(embedRef, dashboardReady) {
   const nativeDatasetIdRef = useRef({});
   const nativeCrossDatasetRef = useRef({});
   const knownFilterGroupsRef = useRef({});
-  // Snapshot of each native FilterGroup column's value as first discovered
-  // (e.g. MED_YN/NONMED_YN's "Y"), captured once and never overwritten.
-  // Some of these dropdown Controls have no "All" option authored in
-  // QuickSight -- disabling their FilterGroup to empty just leaves the
-  // control blank instead of showing "All" like other columns do. Clearing
-  // one of these columns re-applies this default instead of blanking it.
-  const defaultFilterGroupValuesRef = useRef({});
   const knownGroupIdsRef = useRef({});
   const pendingRef = useRef([]);
   const readyRef = useRef(false);
@@ -203,9 +198,6 @@ export function useFilterGroups(embedRef, dashboardReady) {
           g.Status !== 'DISABLED' ? cf.Configuration?.FilterListConfiguration?.CategoryValues || [] : [];
         const stringVals = vals.map(String);
         knownFilterGroupsRef.current[colName] = stringVals;
-        if (stringVals.length) {
-          defaultFilterGroupValuesRef.current[colName] = stringVals;
-        }
         // discoverNativeFilterGroups only runs once per column (guarded by
         // nativeFilterGroupIdRef above), right when a fresh embed session
         // adopts a pre-existing FilterGroup -- e.g. after a page reload.
@@ -259,8 +251,12 @@ export function useFilterGroups(embedRef, dashboardReady) {
         if (!values.length) {
           if (existed) {
             if (isNative) {
-              const fallbackDefault = defaultFilterGroupValuesRef.current[col];
+              const fallbackDefault = isDefaultFilterColumn(col) ? getDefaultFilterValue(col) : null;
               if (fallbackDefault?.length) {
+                // This column's dropdown Control has no "All" option in
+                // QuickSight -- disabling it to empty just leaves it blank,
+                // so re-apply its own starting value instead. The clear
+                // action itself still succeeds; it just can't land on empty.
                 const groups = buildCategoryFilterGroupsForColumn(col, fallbackDefault, 'ENABLED');
                 await dashboard.updateFilterGroups(groups);
                 known[col] = fallbackDefault;
@@ -307,7 +303,15 @@ export function useFilterGroups(embedRef, dashboardReady) {
       }
       setColumnFilter(col, values, col);
     },
-    [embedRef, buildCategoryFilterGroup, buildCategoryFilterGroupsForColumn, groupTargetsForColumn, setColumnFilter]
+    [
+      embedRef,
+      buildCategoryFilterGroup,
+      buildCategoryFilterGroupsForColumn,
+      groupTargetsForColumn,
+      setColumnFilter,
+      isDefaultFilterColumn,
+      getDefaultFilterValue,
+    ]
   );
 
   const flushPendingUpdates = useCallback(async () => {
@@ -368,12 +372,13 @@ export function useFilterGroups(embedRef, dashboardReady) {
     if (!dashboard || !cols.length) return;
     const nativeCols = cols.filter((c) => nativeFilterGroupIdRef.current[c]);
     const ownCols = cols.filter((c) => !nativeFilterGroupIdRef.current[c]);
-    // Same reasoning as applyColumnFilter above: some native dropdown
-    // Controls (e.g. MED_YN/NONMED_YN) have no "All" option authored in
-    // QuickSight, so disabling them to empty just leaves them blank. Those
-    // get their original default re-applied instead of disabled.
-    const nativeColsWithDefault = nativeCols.filter((c) => defaultFilterGroupValuesRef.current[c]?.length);
-    const nativeColsWithoutDefault = nativeCols.filter((c) => !defaultFilterGroupValuesRef.current[c]?.length);
+    // Same reasoning as applyColumnFilter above: configured default-filter
+    // columns get their starting value re-applied instead of disabled, so
+    // their dropdown Control doesn't end up blank.
+    const nativeColsWithDefault = nativeCols.filter(
+      (c) => isDefaultFilterColumn(c) && getDefaultFilterValue(c)?.length
+    );
+    const nativeColsWithoutDefault = nativeCols.filter((c) => !nativeColsWithDefault.includes(c));
     try {
       if (ownCols.length) {
         const ownGroupIds = [];
@@ -398,19 +403,19 @@ export function useFilterGroups(embedRef, dashboardReady) {
       }
       if (nativeColsWithDefault.length) {
         const groups = nativeColsWithDefault.flatMap((c) =>
-          buildCategoryFilterGroupsForColumn(c, defaultFilterGroupValuesRef.current[c], 'ENABLED')
+          buildCategoryFilterGroupsForColumn(c, getDefaultFilterValue(c), 'ENABLED')
         );
         await dashboard.updateFilterGroups(groups);
         nativeColsWithDefault.forEach((c) => {
-          known[c] = defaultFilterGroupValuesRef.current[c];
+          known[c] = getDefaultFilterValue(c);
         });
       }
     } catch (e) {
       console.error('[filter-groups] clearAllKnownFilterGroups failed:', e.message);
     }
     ownCols.concat(nativeColsWithoutDefault).forEach((c) => clearColumn(c));
-    nativeColsWithDefault.forEach((c) => setColumnFilter(c, defaultFilterGroupValuesRef.current[c], c));
-  }, [embedRef, buildCategoryFilterGroupsForColumn, clearColumn, setColumnFilter]);
+    nativeColsWithDefault.forEach((c) => setColumnFilter(c, getDefaultFilterValue(c), c));
+  }, [embedRef, buildCategoryFilterGroupsForColumn, clearColumn, setColumnFilter, isDefaultFilterColumn, getDefaultFilterValue]);
 
   const pollFilterGroupColumns = useCallback(async () => {
     const dashboard = embedRef.current;

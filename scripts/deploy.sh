@@ -42,8 +42,12 @@ for APP_NAME in "${REQUESTED_APPS[@]}"; do
 
         if (!app) process.exit(1);
 
+        const defaultFilter = (app.defaultFilter && typeof app.defaultFilter === "object" && !Array.isArray(app.defaultFilter))
+            ? app.defaultFilter
+            : {};
+
         console.log(
-            `${app.name}\t${app.title || app.name}\t${app.apiBaseUrl}\t${app.qsDatasetIdentifier || ""}\t${app.qsDatasetIdentifierURL || ""}`
+            `${app.name}\t${app.title || app.name}\t${app.apiBaseUrl}\t${app.qsDatasetIdentifier || ""}\t${app.qsDatasetIdentifierURL || ""}\t${JSON.stringify(defaultFilter)}`
         );
     ' "$APPS_JSON" "$APP_NAME")
 
@@ -52,7 +56,7 @@ for APP_NAME in "${REQUESTED_APPS[@]}"; do
         continue
     fi
 
-    IFS=$'\t' read -r name title api_base_url qs_dataset_identifier qs_dataset_identifier_url <<< "$APP_INFO"
+    IFS=$'\t' read -r name title api_base_url qs_dataset_identifier qs_dataset_identifier_url default_filter_values <<< "$APP_INFO"
 
     echo "Cleaning local build..."
 
@@ -70,6 +74,7 @@ for APP_NAME in "${REQUESTED_APPS[@]}"; do
     VITE_API_BASE_URL="$api_base_url" \
     VITE_QS_DATASET_IDENTIFIER="$qs_dataset_identifier" \
     VITE_QS_DATASET_IDENTIFIER_URL="$qs_dataset_identifier_url" \
+    VITE_DEFAULT_FILTER_VALUES="$default_filter_values" \
     npm run build -- \
         --outDir build \
         --assetsDir "$name"

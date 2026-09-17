@@ -519,7 +519,7 @@
    hairline and margin) so the list reads as a short, scannable menu
    instead of a long scroll — more columns still scroll within this box. */
 .fb-col-select-dropdown .fb-search-results {
-  max-height: 500px;
+  max-height: 300px;
   padding: 4px;
 }
 

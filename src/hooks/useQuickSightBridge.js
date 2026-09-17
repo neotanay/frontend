@@ -20,6 +20,7 @@ export function useQuickSightBridge(embedRef) {
     paramsForColumn,
     appliedFilters,
     setAppliedFilters,
+    setColumnFilter,
   } = useFilters();
 
   const recentlySentRef = useRef(new Map());
@@ -155,13 +156,6 @@ export function useQuickSightBridge(embedRef) {
     const dashboard = embedRef.current;
     if (!dashboard) return;
     const generation = ++resetGenerationRef.current;
-
-    // Collapse the UI's applied filters down to just the dashboard's own
-    // default parameter values right away — synchronously, before any of
-    // the QuickSight calls below — instead of clearing to nothing and
-    // waiting for these same defaults to flow back in asynchronously. That
-    // gap used to show a flash of "no filters applied" before the defaults
-    // reappeared a moment later.
     const cachedDefaults = dashboard.getDefaultParameters?.() || [];
     applyDefaultsToAppliedFilters(cachedDefaults);
 
@@ -171,12 +165,6 @@ export function useQuickSightBridge(embedRef) {
       console.error('[qs-bridge] dashboard.reset() failed:', e);
     }
 
-    // dashboard.reset() already restores parameters to their published
-    // defaults on its own -- forcing the same values back in with a
-    // follow-up setParameters() call right after reset() collided with the
-    // SDK's own re-render from reset() and left visuals stuck in an error
-    // state. Just poll getParameters() below to confirm/sync the UI's
-    // applied-filters display with whatever reset() actually produced.
     const delaysMs = [0, 400, 900, 1600];
     for (const delay of delaysMs) {
       if (delay) await new Promise((resolve) => setTimeout(resolve, delay));
@@ -209,11 +197,16 @@ export function useQuickSightBridge(embedRef) {
           });
         });
         if (params.length) dashboard.setParameters(params);
+        Object.entries(remaining || {}).forEach(([key, values]) => {
+          if (!key || key === 'undefined' || !values?.length) return;
+          const column = columnForParam(key) || key;
+          setColumnFilter(column, values, key);
+        });
       } catch (e) {
         console.error('[qs-bridge] resetAndApply failed:', e);
       }
     },
-    [embedRef, isControlParam, paramsForColumn, markSent]
+    [embedRef, isControlParam, paramsForColumn, markSent, columnForParam, setColumnFilter]
   );
 
   return {
