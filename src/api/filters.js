@@ -54,8 +54,8 @@ export function getHealth(signal) {
   return apiClient.get('/health', undefined, signal);
 }
 
-export function listBookmarks(signal) {
-  return apiClient.get('/bookmarks', undefined, signal);
+export function listBookmarks(viewer, signal) {
+  return apiClient.get('/bookmarks', viewer ? { viewer } : undefined, signal);
 }
 
 export async function getBookmark(id, signal) {
@@ -67,9 +67,9 @@ export async function getBookmark(id, signal) {
   return data;
 }
 
-export async function createBookmark({ name, filters }, signal) {
+export async function createBookmark({ name, filters, owner }, signal) {
   const { encrypted, iv } = await encryptBookmarkData(filters);
-  return apiClient.post('/bookmark', { name, encrypted, iv }, signal);
+  return apiClient.post('/bookmark', { name, encrypted, iv, owner }, signal);
 }
 
 export function renameBookmark(id, name, signal) {
@@ -83,4 +83,21 @@ export async function updateBookmarkFilters(id, filters, signal) {
 
 export function deleteBookmark(id, signal) {
   return apiClient.delete(`/bookmark?id=${id}`, undefined, signal);
+}
+
+// NEW: sharing + community approval workflow.
+export function getOrgMembers(signal) {
+  return apiClient.get('/org-members', undefined, signal);
+}
+
+export function shareBookmark(id, visibility, sharedWith, signal) {
+  return apiClient.post('/bookmark/share', { id, visibility, sharedWith }, signal);
+}
+
+export function submitBookmarkForCommunity(id, requester, signal) {
+  return apiClient.post('/bookmark/community/submit', { id, requester }, signal);
+}
+
+export function decideBookmarkCommunity(id, decision, reviewer, signal) {
+  return apiClient.post('/bookmark/community/decide', { id, decision, reviewer }, signal);
 }

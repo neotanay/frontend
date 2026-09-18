@@ -1009,3 +1009,162 @@
   background: #e6f1fb;
   color: #0c447c;
 }
+
+/* ── Bookmark sharing feature (NEW) ────────────────────────────────────── */
+
+.bm-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  font-size: 9px;
+  font-weight: 700;
+  border-radius: 8px;
+  letter-spacing: 0.02em;
+  vertical-align: middle;
+}
+.bm-badge-public {
+  color: #00877a;
+  background: rgba(0, 181, 155, 0.12);
+}
+.bm-badge-shared {
+  color: #8a6d00;
+  background: rgba(255, 193, 7, 0.18);
+}
+
+.bm-identity-wrap {
+  position: relative;
+  margin-bottom: 12px;
+}
+.bm-identity-options {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  z-index: 5;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  max-height: 160px;
+  overflow-y: auto;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+.bm-identity-option {
+  padding: 7px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  border-bottom: 1px solid #f0f0f0;
+}
+.bm-identity-option:last-child {
+  border-bottom: none;
+}
+.bm-identity-option:hover {
+  background: #f5f5f5;
+}
+.bm-identity-option-email {
+  color: #999;
+}
+
+.bm-group {
+  margin-bottom: 10px;
+}
+.bm-group-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 2px;
+  cursor: pointer;
+  border-bottom: 1px solid #eee;
+}
+.bm-group-chevron {
+  color: #888;
+  transition: transform 0.15s ease;
+  transform: rotate(0deg);
+}
+.bm-group-chevron.collapsed {
+  transform: rotate(-90deg);
+}
+.bm-group-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #181818;
+}
+
+.bm-copy-selections-btn {
+  margin-top: 8px;
+}
+
+.bm-share-toggle-row {
+  display: flex;
+  gap: 8px;
+  margin: 8px 0 14px;
+}
+.bm-share-toggle-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 12px;
+  border: none;
+  border-radius: 6px;
+  background: #eee;
+  color: #333;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.bm-share-toggle-btn.active {
+  background: #00B59B;
+  color: #04231e;
+}
+.bm-share-member-list {
+  background: #f7f7f7;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 14px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+.bm-share-member-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+  font-size: 12px;
+  cursor: pointer;
+}
+.bm-share-member-row input[type='checkbox'] {
+  accent-color: #00B59B;
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+}
+
+/* ── Community bookmark approval workflow (NEW) ──────────────────────── */
+
+.bm-badge-community {
+  color: #0c5fa8;
+  background: rgba(24, 95, 165, 0.12);
+}
+.bm-badge-pending {
+  color: #8a6d00;
+  background: rgba(255, 193, 7, 0.18);
+}
+.bm-badge-rejected {
+  color: #c0392b;
+  background: rgba(192, 57, 43, 0.1);
+}
+
+.bm-approve-btn {
+  color: #00877a;
+}
+.bm-approve-btn:hover {
+  background: rgba(0, 181, 155, 0.12);
+}
+.bm-reject-btn {
+  color: #c0392b;
+}
+.bm-reject-btn:hover {
+  background: rgba(192, 57, 43, 0.1);
+}
