@@ -12,7 +12,8 @@ APP_LIST="${4:-}"
 if [ -z "$BUCKET_NAME" ] || [ -z "$APP_LIST" ]; then
     echo "Usage:"
     echo "  $0 <apps.json> <bucket-name> <cloudfront-id> <app1,app2,app3>"
-    echo "./scripts/deploy.sh ./scripts/apps.json argus-cpd-dashboard-web-859217211726 E1PC8Z0SI4SX1O safety_view"
+    echo "Example:"
+    echo "  ./scripts/deploy.sh ./scripts/apps.json argus-cpd-dashboard-web-859217211726 E1PC8Z0SI4SX1O argus_cpd"
     exit 1
 fi
 
@@ -40,15 +41,18 @@ for APP_NAME in "${REQUESTED_APPS[@]}"; do
 
         const app = apps.find(a => a.name === appName);
 
-        if (!app) process.exit(1);
+        if (!app) {
+            process.exit(1);
+        }
 
-        const defaultFilter = (app.defaultFilter && typeof app.defaultFilter === "object" && !Array.isArray(app.defaultFilter))
-            ? app.defaultFilter
-            : {};
-
-        console.log(
-            `${app.name}\t${app.title || app.name}\t${app.apiBaseUrl}\t${app.qsDatasetIdentifier || ""}\t${app.qsDatasetIdentifierURL || ""}\t${JSON.stringify(defaultFilter)}`
-        );
+        console.log(JSON.stringify({
+            name: app.name,
+            title: app.title || app.name,
+            apiBaseUrl: app.apiBaseUrl || "",
+            qsDatasetIdentifier: app.qsDatasetIdentifier || "",
+            qsDatasetIdentifierURL: app.qsDatasetIdentifierURL || "",
+            defaultFilter: app.defaultFilter || {}
+        }));
     ' "$APPS_JSON" "$APP_NAME")
 
     if [ -z "$APP_INFO" ]; then
@@ -56,7 +60,16 @@ for APP_NAME in "${REQUESTED_APPS[@]}"; do
         continue
     fi
 
-    IFS=$'\t' read -r name title api_base_url qs_dataset_identifier qs_dataset_identifier_url default_filter_values <<< "$APP_INFO"
+    name=$(echo "$APP_INFO" | node -pe 'JSON.parse(require("fs").readFileSync(0,"utf8")).name')
+    title=$(echo "$APP_INFO" | node -pe 'JSON.parse(require("fs").readFileSync(0,"utf8")).title')
+    api_base_url=$(echo "$APP_INFO" | node -pe 'JSON.parse(require("fs").readFileSync(0,"utf8")).apiBaseUrl')
+    qs_dataset_identifier=$(echo "$APP_INFO" | node -pe 'JSON.parse(require("fs").readFileSync(0,"utf8")).qsDatasetIdentifier')
+    qs_dataset_identifier_url=$(echo "$APP_INFO" | node -pe 'JSON.parse(require("fs").readFileSync(0,"utf8")).qsDatasetIdentifierURL')
+    default_filter_values=$(echo "$APP_INFO" | node -pe '
+        JSON.stringify(
+            JSON.parse(require("fs").readFileSync(0,"utf8")).defaultFilter
+        )
+    ')
 
     echo "Cleaning local build..."
 
@@ -69,12 +82,14 @@ for APP_NAME in "${REQUESTED_APPS[@]}"; do
     aws s3 rm "s3://${BUCKET_NAME}/${name}/" --recursive 2>/dev/null || true
 
     echo "Building..."
+    echo "Default Filters: $default_filter_values"
 
-    VITE_APP_TITLE="$title" \
-    VITE_API_BASE_URL="$api_base_url" \
-    VITE_QS_DATASET_IDENTIFIER="$qs_dataset_identifier" \
-    VITE_QS_DATASET_IDENTIFIER_URL="$qs_dataset_identifier_url" \
-    VITE_DEFAULT_FILTER_VALUES="$default_filter_values" \
+    export VITE_APP_TITLE="$title"
+    export VITE_API_BASE_URL="$api_base_url"
+    export VITE_QS_DATASET_IDENTIFIER="$qs_dataset_identifier"
+    export VITE_QS_DATASET_IDENTIFIER_URL="$qs_dataset_identifier_url"
+    export VITE_DEFAULT_FILTER_VALUES="$default_filter_values"
+
     npm run build -- \
         --outDir build \
         --assetsDir "$name"

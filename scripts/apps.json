@@ -1,9 +1,9 @@
 [
-  { "name": "safety_view", "title": "Safety View - COSMOS", "apiBaseUrl": "https://h38aqomaxk.execute-api.us-east-1.amazonaws.com/", "qsDatasetIdentifier": "", "qsDatasetIdentifierURL": "https://dq8qzubrypnsg.cloudfront.net/resources/column_dataset_map.json", "defaultFilter":  { "MED_YN": "Y", "NONMED_YN": "Y" } },
+  { "name": "safety_view", "title": "Safety View - COSMOS", "apiBaseUrl": "https://h38aqomaxk.execute-api.us-east-1.amazonaws.com/", "qsDatasetIdentifier": "", "qsDatasetIdentifierURL": "https://dq8qzubrypnsg.cloudfront.net/resources/column_dataset_map.json", "defaultFilter":  { "PRIMARY_SOC": "Y", "CASE_INVALID": "Y", "DRUG_CHARACTER":"Suspect"} },
   { "name": "argus_cpd", "title": "Argus CPD", "apiBaseUrl": "https://cybnp4lpcd.execute-api.us-east-1.amazonaws.com/", "qsDatasetIdentifier": "ARGUS_CPD", "qsDatasetIdentifierURL" :"", "defaultFilter": { "MED_YN": "Y", "NONMED_YN": "Y" } },
-  { "name": "meddra", "title": "MedDRA", "apiBaseUrl": "https://gm7mu2i5d8.execute-api.us-east-1.amazonaws.com/", "qsDatasetIdentifier": "", "qsDatasetIdentifierURL" :"" },
-  {"name": "smart_assessment", "title": "Smart and Assessment", "apiBaseUrl": "https://bk28o6bs67.execute-api.us-east-1.amazonaws.com/", "qsDatasetIdentifier": "", "qsDatasetIdentifierURL" :""},
+  { "name": "meddra", "title": "MedDRA", "apiBaseUrl": "https://gm7mu2i5d8.execute-api.us-east-1.amazonaws.com/", "qsDatasetIdentifier": "", "qsDatasetIdentifierURL" :"", "defaultFilter" :{"PRIMARY_SOC_YN": "Y"}  },
+  {"name": "smart_assessment", "title": "Smart and Assessment", "apiBaseUrl": "https://bk28o6bs67.execute-api.us-east-1.amazonaws.com/", "qsDatasetIdentifier": "", "qsDatasetIdentifierURL" :"", "defaultFilter" :{"POSR_YN": "Y"}},
+  {"name": "shipment", "title": "Shipment", "apiBaseUrl":"https://7rh6nzbl51.execute-api.us-east-1.amazonaws.com/", "qsDatasetIdentifier": "", "qsDatasetIdentifierURL" :"", "defaultFilter" :{"DIM_TIME_UNIT": ["2019", "2020", "2021", "2022", "2023"]}},
   {"name": "consumer", "title": "Consumer", "apiBaseUrl": "https://wj1yhbpbx0.execute-api.us-east-1.amazonaws.com/", "qsDatasetIdentifier": "", "qsDatasetIdentifierURL" :""},
-  {"name": "shipment", "title": "Shipment", "apiBaseUrl":"https://7rh6nzbl51.execute-api.us-east-1.amazonaws.com/", "qsDatasetIdentifier": "", "qsDatasetIdentifierURL" :""},
   {"name": "aggregate", "title": "Aggregate", "apiBaseUrl":"https://s6fzzl9sn2.execute-api.us-east-1.amazonaws.com/", "qsDatasetIdentifier": "", "qsDatasetIdentifierURL" :""}
 ] 
