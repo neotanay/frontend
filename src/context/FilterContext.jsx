@@ -169,7 +169,8 @@ export function FilterProvider({ children }) {
   const getDefaultFilterValue = useCallback(
     (column) => {
       const raw = defaultFilterValues[canonicalColumn(column)];
-      return raw == null ? null : [String(raw)];
+      if (raw == null) return null;
+      return Array.isArray(raw) ? raw.map(String) : [String(raw)];
     },
     [defaultFilterValues, canonicalColumn]
   );
